@@ -5,7 +5,7 @@ export default defineConfig({
   format: ['esm'],
   dts: true,
   clean: true,
-  // React and MUI are peer deps supplied by the consuming app — never bundle them, or the app
-  // would run two copies of React.
-  external: ['react', 'react-dom', '@mui/material', '@emotion/react', '@emotion/styled'],
+  // React is a peer dep supplied by the consuming app — never bundle it, or the app would run two
+  // copies of React. (The lib has no other runtime deps: it's plain HTML/CSS, no UI framework.)
+  external: ['react', 'react-dom'],
 })

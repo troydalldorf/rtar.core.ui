@@ -1,6 +1,6 @@
 # @rtar/core-ui
 
-Shared web UI for the rtar browser apps (Vantage, admin). React + MUI.
+Shared web UI for the rtar browser apps (Vantage, admin). React, framework-agnostic (plain HTML + CSS).
 
 Consumed as a **git dependency** — no registry. The `prepare` script builds `dist/` on install, so
 `npm install` from git yields a ready package.

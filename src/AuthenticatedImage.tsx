@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import { Box, Skeleton, Typography } from '@mui/material'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useResolveImageUrl, type ImageVariant } from './authImageContext'
 import { evictCachedImageUrl, getCachedImageUrl } from './imageUrlCache'
 
@@ -9,10 +8,12 @@ export interface AuthenticatedImageProps {
   alt?: string
   /** Fixed square size (px) for the thumbnail/skeleton. Ignored when `fill` is set. */
   size?: number
-  /** Fill the parent instead of a fixed square (e.g. a lightbox). */
+  /** Fill the parent (100% × 100%) instead of a fixed square — the parent must be sized. */
   fill?: boolean
   onClick?: () => void
   className?: string
+  /** Extra inline styles merged onto the rendered element (img / placeholder). */
+  style?: CSSProperties
 }
 
 // Backoff for transient failures (network / 5xx). A 401/403/404 is treated as terminal — no retry.
@@ -22,19 +23,45 @@ function isTerminalStatus(status: number | undefined): boolean {
   return status === 401 || status === 403 || status === 404
 }
 
+// Injected once. A plain-CSS shimmer so the lib has NO UI-framework dependency (it's consumed by
+// both a MUI app and a non-MUI one).
+const SHIMMER_STYLE_ID = 'rtar-authimg-shimmer'
+function ensureShimmerStyles(): void {
+  if (typeof document === 'undefined' || document.getElementById(SHIMMER_STYLE_ID)) return
+  const el = document.createElement('style')
+  el.id = SHIMMER_STYLE_ID
+  el.textContent = `
+@keyframes rtar-authimg-shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+.rtar-authimg-shimmer {
+  background: linear-gradient(90deg, rgba(127,127,127,0.10) 0%, rgba(127,127,127,0.22) 50%, rgba(127,127,127,0.10) 100%);
+  background-size: 200% 100%;
+  animation: rtar-authimg-shimmer 1.4s linear infinite;
+}
+.rtar-authimg-unavailable {
+  display: flex; align-items: center; justify-content: center; padding: 4px;
+  font-size: 11px; text-align: center; color: rgba(127,127,127,0.9);
+  border: 1px solid rgba(127,127,127,0.25); box-sizing: border-box;
+}`
+  document.head.appendChild(el)
+}
+
 /**
  * Displays an image the API serves behind Bearer auth, resolved to a signed URL via the app-supplied
  * {@link AuthImageProvider} and rendered with a plain `<img src>` — which, unlike a fetch of the
- * redirect endpoint, is never blocked by CORS. Shows a skeleton while resolving and an "Unavailable"
+ * redirect endpoint, is never blocked by CORS. Shows a shimmer while resolving and an "Unavailable"
  * tile on terminal failure so the layout never collapses; retries transient failures with backoff.
+ *
+ * Framework-agnostic: plain HTML + CSS, no UI-library dependency.
  */
-export function AuthenticatedImage({ imageId, variant = 'thumb', alt = '', size = 120, fill, onClick, className }: AuthenticatedImageProps) {
+export function AuthenticatedImage({ imageId, variant = 'thumb', alt = '', size = 120, fill, onClick, className, style }: AuthenticatedImageProps) {
   const resolveImageUrl = useResolveImageUrl()
 
   const [url, setUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const timer = useRef<number | null>(null)
+
+  useEffect(() => ensureShimmerStyles(), [])
 
   useEffect(() => {
     let cancelled = false
@@ -69,41 +96,27 @@ export function AuthenticatedImage({ imageId, variant = 'thumb', alt = '', size 
     }
   }
 
-  const box = fill ? { width: '100%', height: '100%' } : { width: size, height: size, borderRadius: 2, overflow: 'hidden' }
+  const box: CSSProperties = fill
+    ? { width: '100%', height: '100%' }
+    : { width: size, height: size, borderRadius: 8, overflow: 'hidden' }
 
   if (failed) {
-    return (
-      <Box
-        className={className}
-        sx={{ ...box, border: (t) => `1px solid ${t.palette.divider}`, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 1 }}
-      >
-        <Typography variant="caption" color="text.secondary" align="center">
-          Unavailable
-        </Typography>
-      </Box>
-    )
+    return <div className={`rtar-authimg-unavailable ${className ?? ''}`} style={{ ...box, borderRadius: 8, ...style }}>Unavailable</div>
   }
 
   if (!url) {
-    return <Skeleton className={className} variant="rounded" width={fill ? '100%' : size} height={fill ? '100%' : size} />
+    return <div className={`rtar-authimg-shimmer ${className ?? ''}`} style={{ ...box, borderRadius: 8, ...style }} aria-busy="true" aria-label={alt || undefined} />
   }
 
   return (
-    <Box
-      component="img"
+    <img
       className={className}
       src={url}
       alt={alt}
       onError={handleImgError}
       onClick={onClick}
       loading="lazy"
-      sx={{
-        ...box,
-        objectFit: fill ? 'contain' : 'cover',
-        display: 'block',
-        cursor: onClick ? 'pointer' : 'default',
-        border: fill ? 'none' : (t) => `1px solid ${t.palette.divider}`,
-      }}
+      style={{ ...box, objectFit: fill ? 'contain' : 'cover', display: 'block', cursor: onClick ? 'pointer' : 'default', ...style }}
     />
   )
 }
