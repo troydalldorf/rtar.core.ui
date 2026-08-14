@@ -1,3 +1,5 @@
 export { AuthenticatedImage, type AuthenticatedImageProps } from './AuthenticatedImage'
 export { AuthImageProvider, useResolveImageUrl, type ImageVariant, type ResolveImageUrl } from './authImageContext'
 export { clearImageCache, evictCachedImageUrl, getCachedImageUrl } from './imageUrlCache'
+export { DocView, type DocViewProps } from './DocView'
+export { IMAGE_SCHEME, ALERT_LABELS, readImageId, sanitizeSvg, slugifyHeading, createHeadingSlugger } from './docDialect'
