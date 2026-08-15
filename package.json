@@ -1,6 +1,6 @@
 {
   "name": "@rtar/core-ui",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Shared web UI for the rtar browser apps (Vantage, admin). React, framework-agnostic (no UI-library dependency).",
   "type": "module",
   "types": "./dist/index.d.ts",

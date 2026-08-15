@@ -29,6 +29,16 @@ const CSS = `
   --doc-surface: rgba(127, 127, 127, 0.06);
   --doc-code-bg: rgba(127, 127, 127, 0.10);
 
+  --doc-table-border: rgba(127, 127, 127, 0.30);
+  --doc-table-head: rgba(127, 127, 127, 0.11);
+  --doc-table-stripe: rgba(127, 127, 127, 0.045);
+
+  /* The prose measure, and the wider bound a table or diagram may break out to. Both are lengths
+     rather than one max-width on the container, because the container has to be wide enough to
+     hold the widest child — see the measure rules below. */
+  --doc-measure: 68ch;
+  --doc-measure-wide: 104ch;
+
   --doc-note: #3b7dd8;
   --doc-tip: #2f9e6d;
   --doc-important: #8b5cf6;
@@ -38,9 +48,29 @@ const CSS = `
   color: var(--doc-fg);
   font-size: 1.0625rem;
   line-height: 1.7;
-  max-width: 68ch;
+  max-width: var(--doc-measure-wide);
   overflow-wrap: break-word;
 }
+
+/* ---- Measure ----
+
+   The measure is capped per CHILD, not on .doc-view, so that running text keeps its ~68ch line while
+   a table or a diagram can break out to the wider bound. Capping the container instead — what this
+   did before — squeezed a four-column table into the prose column and handed it a scrollbar, which
+   is what made an authored table read as raw markdown.
+
+   Kept in normal block flow on purpose. A grid here would lay out the same children, but adjacent
+   margins stop collapsing inside one, and every vertical rhythm value below is written expecting the
+   collapse (a 1.15em paragraph bottom meeting a 2.2em heading top is 2.2em, not 3.35em). */
+.doc-view > p,
+.doc-view > ul,
+.doc-view > ol,
+.doc-view > blockquote,
+.doc-view > .doc-callout { max-width: var(--doc-measure); }
+
+/* Headings span the full width so an h2's rule reads as a section divider across the widest content
+   under it, rather than stopping short above a table. Heading text is short enough not to need the
+   measure to stay readable. */
 
 /* Deliberately NOT keyed to prefers-color-scheme. The document sets a foreground colour but paints
    no background of its own — it sits on whatever surface the host app provides — so following the OS
@@ -168,13 +198,47 @@ const CSS = `
 
 /* ---- Tables ---- */
 
-.doc-table-scroll { margin: 1.6em 0; overflow-x: auto; }
-.doc-view table { width: 100%; border-collapse: collapse; font-size: 0.94em; }
-.doc-view th, .doc-view td {
-  padding: 0.55em 0.75em;
+/* The scroller is also the frame. Bounding the table in a rounded, bordered container is what makes
+   it read as one object; before, a table was a stack of loose horizontal rules with nothing holding
+   it together, and its right edge simply ran out. overflow-x stays, for the genuinely too-wide
+   table on a narrow viewport. */
+.doc-table-scroll {
+  margin: 1.9em 0;
+  overflow-x: auto;
+  border: 1px solid var(--doc-table-border);
+  border-radius: 10px;
+}
+.doc-view table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-view thead th {
+  padding: 0.72em 0.95em;
+  font-size: 0.76em;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   text-align: left;
+  white-space: nowrap;
+  color: var(--doc-fg-muted);
+  background: var(--doc-table-head);
+  border-bottom: 1px solid var(--doc-table-border);
+}
+
+.doc-view td {
+  padding: 0.75em 0.95em;
+  text-align: left;
+  vertical-align: top;
   border-bottom: 1px solid var(--doc-rule);
 }
-.doc-view th { font-weight: 600; color: var(--doc-heading); background: var(--doc-surface); }
+.doc-view tbody tr:nth-child(even) td { background: var(--doc-table-stripe); }
 .doc-view tbody tr:last-child td { border-bottom: 0; }
+
+/* The left column is the row's subject in every table shape the dialect produces — a term being
+   defined, a hostname, a field name — so it carries heading colour and stops wrapping mid-token. */
+.doc-view tbody td:first-child { color: var(--doc-heading); }
+.doc-view td code { overflow-wrap: break-word; }
 `
