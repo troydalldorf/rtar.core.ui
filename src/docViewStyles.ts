@@ -163,6 +163,65 @@ const CSS = `
   color: var(--doc-fg-muted);
 }
 
+/* ---- Rows ----
+
+   A paragraph of several images is a set meant to be read across. The frames share the width and
+   shrink together; below --doc-frame-min they stop shrinking and the row scrolls instead, because a
+   screenshot squeezed past that point communicates less than the same images stacked.
+
+   That floor is the same decision the PDF renderer makes, at the same width — two inches, which is
+   what 12rem is at the browser's 96dpi. Print cannot scroll, so it wraps onto another line there;
+   this scrolls. Both sides give up on one row at the same place, and differ only in what they do
+   next. Keep the two in step: a frame that stays legible here and turns into a stamp in the PDF is
+   the failure the dialect's shape exists to prevent. */
+.doc-figure-row {
+  display: flex;
+  gap: 1.1em;
+  margin: 2em 0;
+  overflow-x: auto;
+  /* Room for the scrollbar the overflow may add, so it never lands on top of a caption. */
+  padding-bottom: 0.5em;
+}
+
+.doc-figure-row > .doc-frame {
+  /* Equal shares of the row, shrinking together rather than by intrinsic image width — a wide
+     screenshot beside a narrow one is still one comparison, not a big picture and a small one. */
+  flex: 1 1 0;
+  min-width: var(--doc-frame-min, 12rem);
+
+  /* A column so the caption can be pushed to the bottom: the frames stretch to a common height, so
+     pinning the captions puts them on one line across the row. Ragged captions read as unrelated
+     figures that happen to be adjacent. */
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  text-align: center;
+}
+
+/* The frame's own ceiling, and the one rule here that has to shout.
+   DocImage pins max-height: 70vh inline, which is right for a figure that owns the page and far
+   too tall for one frame of a comparison: a before and after of two phone captures would run most
+   of a screenful each, so the reader scrolls between the two things the row exists to put side by
+   side. Overriding an inline style is what !important is for. Half the viewport, on the grounds
+   that nothing in a set of several should own more of the screen than that.
+   object-fit keeps the aspect ratio when the ceiling binds, since the width is pinned at 100%. */
+.doc-figure-row > .doc-frame img {
+  max-width: 100%;
+  max-height: 50vh !important;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+/* Smaller than a figure's caption on purpose. In a row the caption says WHICH frame this is — the
+   width, the state, the before or the after — so it is a label, not a description. */
+.doc-figure-row > .doc-frame figcaption {
+  margin: auto 0 0;
+  padding-top: 0.6em;
+  font-size: 0.8em;
+  color: var(--doc-fg-muted);
+}
+
 .doc-diagram { margin: 2em 0; text-align: center; overflow-x: auto; }
 .doc-diagram svg { max-width: 100%; height: auto; }
 
