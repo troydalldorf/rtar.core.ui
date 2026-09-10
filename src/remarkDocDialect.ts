@@ -22,6 +22,7 @@ const ALERT_MARKER = /^\s*\[!([A-Za-z]+)\]\s*\n?/
  *
  * - a blockquote opening with `[!NOTE]` becomes an `aside` callout carrying its label
  * - a paragraph containing nothing but an image becomes a `figure` with the alt text as its caption
+ * - a paragraph containing nothing but SEVERAL images becomes a row of captioned frames
  * - every heading gets a stable, de-duplicated anchor id
  *
  * Diagrams (` ```svg `) are deliberately left alone — they need sanitizing at render time, which is
@@ -90,18 +91,53 @@ function applyAlert(quote: Node): void {
   }
 }
 
+/**
+ * A paragraph that is nothing but images.
+ *
+ * One image is a figure, as it always was. SEVERAL are a row — a set meant to be read across rather
+ * than scrolled through, which is what a screen at five widths, or a before and after, actually is.
+ *
+ * No new syntax carries that: the author writes the images on their own lines, and the soft breaks
+ * between them are already what `applyFigure` had to skip to recognise a lone image at all. A fence
+ * would have meant literal text and a second parser for something mdast has already given us, and it
+ * would render as a block of markup in any other markdown tool. This degrades to the same images in
+ * the same order, merely stacked.
+ */
 function applyFigure(paragraph: Node): void {
-  const children = paragraph.children ?? []
-  const image = children[0]
-  if (children.length !== 1 || !image || image.type !== 'image') return
+  // Soft breaks and the whitespace either side of them are what separate the images in the source;
+  // anything else means the paragraph is prose that happens to contain one.
+  const kept = (paragraph.children ?? []).filter(
+    (child) =>
+      !(child.type === 'break' || (child.type === 'text' && (child.value ?? '').trim().length === 0)),
+  )
+  if (kept.length === 0 || kept.some((child) => child.type !== 'image')) return
 
-  paragraph.data = { hName: 'figure', hProperties: { className: ['doc-figure'] } }
-
-  const caption = (image.alt ?? '').trim()
-  if (caption.length > 0) {
-    paragraph.children = [
-      image,
-      { type: 'paragraph', data: { hName: 'figcaption' }, children: [{ type: 'text', value: caption }] },
-    ]
+  if (kept.length === 1) {
+    applySingleFigure(paragraph, kept[0])
+    return
   }
+
+  // Each frame carries its own caption, because in a row the caption identifies WHICH one this is —
+  // the width, the state, the before or the after — rather than describing the set.
+  paragraph.data = { hName: 'div', hProperties: { className: ['doc-figure-row'] } }
+  paragraph.children = kept.map((image) => ({
+    type: 'paragraph',
+    data: { hName: 'figure', hProperties: { className: ['doc-frame'] } },
+    children: captioned(image),
+  }))
+}
+
+function applySingleFigure(paragraph: Node, image: Node): void {
+  paragraph.data = { hName: 'figure', hProperties: { className: ['doc-figure'] } }
+  paragraph.children = captioned(image)
+}
+
+/** An image, followed by its alt as a caption where there is one. */
+function captioned(image: Node): Node[] {
+  const caption = (image.alt ?? '').trim()
+  if (caption.length === 0) return [image]
+  return [
+    image,
+    { type: 'paragraph', data: { hName: 'figcaption' }, children: [{ type: 'text', value: caption }] },
+  ]
 }
