@@ -165,15 +165,16 @@ const CSS = `
 
 /* ---- Rows ----
 
-   A paragraph of several images is a set meant to be read across. The frames share the width and
-   shrink together; below --doc-frame-min they stop shrinking and the row scrolls instead, because a
-   screenshot squeezed past that point communicates less than the same images stacked.
+   A paragraph of several images is a set meant to be read across, at the size each was made. The
+   frames do not share the width and do not shrink to fit: an image renders 1:1 and the row scrolls.
 
-   That floor is the same decision the PDF renderer makes, at the same width — two inches, which is
-   what 12rem is at the browser's 96dpi. Print cannot scroll, so it wraps onto another line there;
-   this scrolls. Both sides give up on one row at the same place, and differ only in what they do
-   next. Keep the two in step: a frame that stays legible here and turns into a stamp in the PDF is
-   the failure the dialect's shape exists to prevent. */
+   That is a deliberate reversal. Equal shares reads well for a before-and-after of one subject, and
+   destroys the case rows were built for — one screen captured at four phone widths, where the
+   differing widths ARE the comparison. Rendering those at a common width shows four phones as one.
+
+   Print cannot scroll, so the PDF renderer still wraps rather than matching this. The two differ in
+   what they do when a row will not fit, which they always did; what they must not differ on is
+   whether a frame is legible at all. */
 .doc-figure-row {
   display: flex;
   gap: 1.1em;
@@ -184,10 +185,15 @@ const CSS = `
 }
 
 .doc-figure-row > .doc-frame {
-  /* Equal shares of the row, shrinking together rather than by intrinsic image width — a wide
-     screenshot beside a narrow one is still one comparison, not a big picture and a small one. */
-  flex: 1 1 0;
-  min-width: var(--doc-frame-min, 12rem);
+  /* INTRINSIC width, not equal shares.
+     This was flex: 1 1 0, on the reasoning that a wide screenshot beside a narrow one is still one
+     comparison rather than a big picture and a small one. That is right for a before-and-after of
+     the same subject, and wrong for the case rows were built for: a screen captured at 320, 375,
+     393 and 430 points. Forcing those to a common width renders four different phones as the same
+     phone and throws away the only thing the set is there to show.
+     Sizing to the image is also the truthful default — equalising is an opinion imposed on the
+     data, and an author who wants it can supply images of one size. The row already scrolls. */
+  flex: 0 0 auto;
 
   /* A column so the caption can be pushed to the bottom: the frames stretch to a common height, so
      pinning the captions puts them on one line across the row. Ragged captions read as unrelated
@@ -206,10 +212,16 @@ const CSS = `
    that nothing in a set of several should own more of the screen than that.
    object-fit keeps the aspect ratio when the ceiling binds, since the width is pinned at 100%. */
 .doc-figure-row > .doc-frame img {
-  max-width: 100%;
-  max-height: 50vh !important;
+  /* 1:1, and both ceilings have to be lifted to get there.
+     DocImage pins max-height: 70vh inline and the row used to cap it again at 50vh, so a phone
+     capture arrived scaled — which is exactly the softness a reader reads as a bad screenshot.
+     A set of screenshots is only worth looking at at the size it was taken; anything else is
+     resampling, and resampling a screenshot of type is the one thing it cannot survive.
+     The row scrolls, so the cost of honouring the pixels is sideways scrolling, not a broken page. */
+  max-width: none;
+  max-height: none !important;
+  width: auto;
   height: auto;
-  object-fit: contain;
   border-radius: 6px;
 }
 
