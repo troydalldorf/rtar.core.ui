@@ -1,0 +1,4 @@
+# Only the owner's approval merges a pull request. The rulesets require a code owner review, and the
+# agent account (troydalldorf-claude) has write access but is not an owner: it can open and update pull
+# requests, not approve them.
+* @troydalldorf
