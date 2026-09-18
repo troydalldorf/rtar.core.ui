@@ -1,0 +1,17 @@
+# Calls the estate's reviewer, which lives in rtar.infra so its prompt exists once.
+# Needs one thing here: the OPENAI_API_KEY secret. Without it the job says so and exits zero.
+name: AI review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    uses: troydalldorf/rtar.infra/.github/workflows/ai-review.yml@main
+    secrets: inherit
