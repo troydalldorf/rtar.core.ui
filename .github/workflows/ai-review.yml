@@ -14,4 +14,8 @@ permissions:
 jobs:
   review:
     uses: troydalldorf/rtar.infra/.github/workflows/ai-review.yml@main
-    secrets: inherit
+    # By name, not inherit: the reviewer reads these three and nothing else (rtar.infra#40).
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
